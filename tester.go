@@ -22,9 +22,10 @@ func main() {
 	app := cli.NewApp()
 	app.Usage = "RabbitMQ Stress Tester"
 	app.Version = ""
+	app.Author = ""
+	app.Copyright = ""
 	app.HideVersion = true
 	app.HideHelp = true  // Hide help as a full command
-	app.Author = ""
 	app.Flags = []cli.Flag{
 		cli.StringFlag{"server, s", "localhost", "hostname for RabbitMQ server", ""},
 		cli.IntFlag{"producer, p", 0, "number of messages to produce (-1 to produce forever)", ""},
