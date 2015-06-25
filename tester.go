@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
+	//"github.com/martymacgyver/cli"
 	"github.com/streadway/amqp"
 	"log"
 	"os"
@@ -19,17 +20,18 @@ type MqMessage struct {
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "tester"
-	app.Usage = "Make the rabbit cry"
+	app.Usage = "RabbitMQ Stress Tester"
+	app.Version = ""
+	app.Author = ""
 	app.Flags = []cli.Flag{
-		cli.StringFlag{"server, s", "rabbit-mq-test.cs1cloud.internal", "Hostname for RabbitMQ server", ""},
-		cli.IntFlag{"producer, p", 0, "Number of messages to produce, -1 to produce forever", ""},
-		cli.IntFlag{"wait, w", 0, "Number of nanoseconds to wait between publish events", ""},
-		cli.IntFlag{"consumer, c", -1, "Number of messages to consume. 0 consumes forever", ""},
+		cli.StringFlag{"server, s", "localhost", "hostname for RabbitMQ server", ""},
+		cli.IntFlag{"producer, p", 0, "number of messages to produce, -1 to produce forever", ""},
+		cli.IntFlag{"wait, w", 0, "number of nanoseconds to wait between publish events", ""},
+		cli.IntFlag{"consumer, c", -1, "number of messages to consume. 0 consumes forever", ""},
 		cli.IntFlag{"bytes, b", 0, "number of extra bytes to add to the RabbitMQ message payload. About 50K max", ""},
 		cli.IntFlag{"concurrency, n", 50, "number of reader/writer Goroutines", ""},
-		cli.BoolFlag{"quiet, q", "Print only errors to stdout", ""},
-		cli.BoolFlag{"wait-for-ack, a", "Wait for an ack or nack after enqueueing a message", ""},
+		cli.BoolFlag{"quiet, q", "print only errors to stdout", ""},
+		cli.BoolFlag{"wait-for-ack, a", "wait for an ack or nack after enqueueing a message", ""},
 	}
 	app.Action = func(c *cli.Context) {
 		runApp(c)
