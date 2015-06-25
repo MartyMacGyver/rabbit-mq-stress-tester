@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
-	//"github.com/martymacgyver/cli"
 	"github.com/streadway/amqp"
 	"log"
 	"os"
