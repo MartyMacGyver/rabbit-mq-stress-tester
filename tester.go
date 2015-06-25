@@ -46,8 +46,7 @@ func runApp(c *cli.Context) {
 	uri := "amqp://guest:guest@" + c.String("server") + ":5672"
 
 	if c.Int("consumer") > -1 && c.Int("producer") != 0 {
-		fmt.Println()
-		fmt.Println("!! Error: Cannot specify both producer and consumer options together")
+		fmt.Println("Error: Cannot specify both producer and consumer options together")
 		fmt.Println()
 		cli.ShowAppHelp(c)
 		os.Exit(1)
@@ -59,6 +58,9 @@ func runApp(c *cli.Context) {
 		fmt.Println("Running in producer mode")
 		config := ProducerConfig{uri, c.Bool("quiet"), c.Int("bytes"), c.Bool("wait-for-ack")}
 		makeProducers(config, c.Int("concurrency"), c.Int("producer"), c.Int("wait"))
+	} else {
+		cli.ShowAppHelp(c)
+		os.Exit(0)
 	}
 }
 
