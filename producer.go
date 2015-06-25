@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"encoding/json"
@@ -9,8 +9,8 @@ import (
 
 type ProducerConfig struct {
 	Uri        string
-	Bytes      int
 	Quiet      bool
+	Bytes      int
 	WaitForAck bool
 }
 

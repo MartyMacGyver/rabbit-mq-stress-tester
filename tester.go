@@ -21,14 +21,15 @@ func main() {
 	app := cli.NewApp()
 	app.Usage = "RabbitMQ Stress Tester"
 	app.Version = ""
+	app.HideVersion = true
 	app.Author = ""
 	app.Flags = []cli.Flag{
 		cli.StringFlag{"server, s", "localhost", "hostname for RabbitMQ server", ""},
 		cli.IntFlag{"producer, p", 0, "number of messages to produce, -1 to produce forever", ""},
 		cli.IntFlag{"wait, w", 0, "number of nanoseconds to wait between publish events", ""},
 		cli.IntFlag{"consumer, c", -1, "number of messages to consume. 0 consumes forever", ""},
-		cli.IntFlag{"bytes, b", 0, "number of extra bytes to add to the RabbitMQ message payload. About 50K max", ""},
-		cli.IntFlag{"concurrency, n", 50, "number of reader/writer Goroutines", ""},
+		cli.IntFlag{"bytes, b", 0, "number of extra bytes to add to the message payload (~50000 max)", ""},
+		cli.IntFlag{"concurrency, n", 50, "number of reader/writer goroutines", ""},
 		cli.BoolFlag{"quiet, q", "print only errors to stdout", ""},
 		cli.BoolFlag{"wait-for-ack, a", "wait for an ack or nack after enqueueing a message", ""},
 	}
@@ -43,12 +44,13 @@ func runApp(c *cli.Context) {
 	uri := "amqp://guest:guest@" + c.String("server") + ":5672"
 
 	if c.Int("consumer") > -1 {
-		makeConsumers(uri, c.Int("concurrency"), c.Int("consumer"))
+		config := ConsumerConfig{uri, c.Bool("quiet")}
+		makeConsumers(config, c.Int("concurrency"), c.Int("consumer"))
 	}
 
 	if c.Int("producer") != 0 {
-		config := ProducerConfig{uri, c.Int("bytes"), c.Bool("quiet"), c.Bool("wait-for-ack")}
-		makeProducers(c.Int("producer"), c.Int("wait"), c.Int("concurrency"), config)
+		config := ProducerConfig{uri, c.Bool("quiet"), c.Int("bytes"), c.Bool("wait-for-ack")}
+		makeProducers(config, c.Int("concurrency"), c.Int("producer"), c.Int("wait"))
 	}
 }
 
@@ -60,7 +62,7 @@ func MakeQueue(c *amqp.Channel) amqp.Queue {
 	return q
 }
 
-func makeProducers(n int, wait int, concurrency int, config ProducerConfig) {
+func makeProducers(config ProducerConfig, concurrency int, toProduce int, wait int) {
 
 	taskChan := make(chan int)
 	for i := 0; i < concurrency; i++ {
@@ -69,7 +71,7 @@ func makeProducers(n int, wait int, concurrency int, config ProducerConfig) {
 
 	start := time.Now()
 
-	for i := 0; i < n; i++ {
+	for i := 0; i < toProduce; i++ {
 		taskChan <- i
 		time.Sleep(time.Duration(int64(wait)))
 	}
@@ -81,12 +83,12 @@ func makeProducers(n int, wait int, concurrency int, config ProducerConfig) {
 	log.Printf("Finished: %s", time.Since(start))
 }
 
-func makeConsumers(uri string, concurrency int, toConsume int) {
+func makeConsumers(config ConsumerConfig, concurrency int, toConsume int) {
 
 	doneChan := make(chan bool)
 
 	for i := 0; i < concurrency; i++ {
-		go Consume(uri, doneChan)
+		go Consume(config, doneChan)
 	}
 
 	start := time.Now()

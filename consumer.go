@@ -7,9 +7,14 @@ import (
 	"time"
 )
 
-func Consume(uri string, doneChan chan bool) {
+type ConsumerConfig struct {
+	Uri        string
+	Quiet      bool
+}
+
+func Consume(config ConsumerConfig, doneChan chan bool) {
 	log.Println("Consuming...")
-	connection, err := amqp.Dial(uri)
+	connection, err := amqp.Dial(config.Uri)
 	if err != nil {
 		println(err.Error())
 		panic(err.Error())
@@ -37,7 +42,9 @@ func Consume(uri string, doneChan chan bool) {
 		if err4 != nil {
 			log.Printf("Error unmarshalling! %s", err.Error())
 		}
-		log.Printf("Message age: %s", time.Since(thisMessage.TimeNow))
+		if !config.Quiet {
+			log.Printf("Message age: %s", time.Since(thisMessage.TimeNow))
+		}
 
 	}
 
