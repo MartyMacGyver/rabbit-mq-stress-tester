@@ -16,14 +16,16 @@ Running
     ./rabbit-mq-stress-tester [arguments]
 
       --server, -s "localhost"     hostname for RabbitMQ server
-      --producer, -p "0"           number of messages to produce, -1 to produce forever
+      --producer, -p "0"           number of messages to produce (-1 to produce forever)
+      --consumer, -c "-1"          number of messages to consume (0 consumes forever)
       --wait, -w "0"               number of nanoseconds to wait between publish events
-      --consumer, -c "-1"          number of messages to consume. 0 consumes forever
       --bytes, -b "0"              number of extra bytes to add to the message payload (~50000 max)
       --concurrency, -n "50"       number of reader/writer goroutines
-      --quiet, -q                  print only errors to stdout
       --wait-for-ack, -a           wait for an ack or nack after enqueueing a message
+      --quiet, -q                  print only errors to stdout
       --help, -h                   show help
+
+Note: --producer/-p and --consumer/-c options are mutually exclusive!
 
 Examples
 --------

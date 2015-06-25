@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"time"
+	"fmt"
 )
 
 var totalTime int64 = 0
@@ -22,16 +23,18 @@ func main() {
 	app.Usage = "RabbitMQ Stress Tester"
 	app.Version = ""
 	app.HideVersion = true
+	app.HideHelp = true  // Hide help as a full command
 	app.Author = ""
 	app.Flags = []cli.Flag{
 		cli.StringFlag{"server, s", "localhost", "hostname for RabbitMQ server", ""},
-		cli.IntFlag{"producer, p", 0, "number of messages to produce, -1 to produce forever", ""},
+		cli.IntFlag{"producer, p", 0, "number of messages to produce (-1 to produce forever)", ""},
+		cli.IntFlag{"consumer, c", -1, "number of messages to consume (0 consumes forever)", ""},
 		cli.IntFlag{"wait, w", 0, "number of nanoseconds to wait between publish events", ""},
-		cli.IntFlag{"consumer, c", -1, "number of messages to consume. 0 consumes forever", ""},
 		cli.IntFlag{"bytes, b", 0, "number of extra bytes to add to the message payload (~50000 max)", ""},
 		cli.IntFlag{"concurrency, n", 50, "number of reader/writer goroutines", ""},
-		cli.BoolFlag{"quiet, q", "print only errors to stdout", ""},
 		cli.BoolFlag{"wait-for-ack, a", "wait for an ack or nack after enqueueing a message", ""},
+		cli.BoolFlag{"quiet, q", "print only errors to stdout", ""},
+		cli.BoolFlag{"help, h", "show help", ""}, // Retain --help/-h as switches
 	}
 	app.Action = func(c *cli.Context) {
 		runApp(c)
@@ -40,15 +43,20 @@ func main() {
 }
 
 func runApp(c *cli.Context) {
-	println("Running!")
 	uri := "amqp://guest:guest@" + c.String("server") + ":5672"
 
-	if c.Int("consumer") > -1 {
+	if c.Int("consumer") > -1 && c.Int("producer") != 0 {
+		fmt.Println()
+		fmt.Println("!! Error: Cannot specify both producer and consumer options together")
+		fmt.Println()
+		cli.ShowAppHelp(c)
+		os.Exit(1)
+	} else if c.Int("consumer") > -1 {
+		fmt.Println("Running in consumer mode")
 		config := ConsumerConfig{uri, c.Bool("quiet")}
 		makeConsumers(config, c.Int("concurrency"), c.Int("consumer"))
-	}
-
-	if c.Int("producer") != 0 {
+	} else if c.Int("producer") != 0 {
+		fmt.Println("Running in producer mode")
 		config := ProducerConfig{uri, c.Bool("quiet"), c.Int("bytes"), c.Bool("wait-for-ack")}
 		makeProducers(config, c.Int("concurrency"), c.Int("producer"), c.Int("wait"))
 	}
@@ -63,8 +71,8 @@ func MakeQueue(c *amqp.Channel) amqp.Queue {
 }
 
 func makeProducers(config ProducerConfig, concurrency int, toProduce int, wait int) {
-
 	taskChan := make(chan int)
+
 	for i := 0; i < concurrency; i++ {
 		go Produce(config, taskChan)
 	}
@@ -84,7 +92,6 @@ func makeProducers(config ProducerConfig, concurrency int, toProduce int, wait i
 }
 
 func makeConsumers(config ConsumerConfig, concurrency int, toConsume int) {
-
 	doneChan := make(chan bool)
 
 	for i := 0; i < concurrency; i++ {
