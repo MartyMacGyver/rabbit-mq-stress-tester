@@ -102,7 +102,6 @@ func makeConsumers(config ConsumerConfig, concurrency int, toConsume int) {
 			log.Println("Consumed: ", i)
 		}
 	} else {
-
 		for {
 			<-doneChan
 		}

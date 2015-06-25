@@ -13,26 +13,26 @@ Building
 Running
 -------
 
-   ./rabbit-mq-stress-tester [arguments]
+    ./rabbit-mq-stress-tester [arguments]
 
-       --server, -s "localhost"     hostname for RabbitMQ server
-       --producer, -p "0"           number of messages to produce, -1 to produce forever
-       --wait, -w "0"               number of nanoseconds to wait between publish events
-       --consumer, -c "-1"          number of messages to consume. 0 consumes forever
-       --bytes, -b "0"              number of extra bytes to add to the message payload (~50000 max)
-       --concurrency, -n "50"       number of reader/writer goroutines
-       --quiet, -q                  print only errors to stdout
-       --wait-for-ack, -a           wait for an ack or nack after enqueueing a message
-       --help, -h                   show help
+      --server, -s "localhost"     hostname for RabbitMQ server
+      --producer, -p "0"           number of messages to produce, -1 to produce forever
+      --wait, -w "0"               number of nanoseconds to wait between publish events
+      --consumer, -c "-1"          number of messages to consume. 0 consumes forever
+      --bytes, -b "0"              number of extra bytes to add to the message payload (~50000 max)
+      --concurrency, -n "50"       number of reader/writer goroutines
+      --quiet, -q                  print only errors to stdout
+      --wait-for-ack, -a           wait for an ack or nack after enqueueing a message
+      --help, -h                   show help
 
 Examples
 --------
 
-Consume messages forever:
+Consume messages forever using 50 concurrent goroutines:
 
     ./rabbit-mq-stress-tester --server localhost --consumer 0 --concurrency 50
 
-Produce 1,000,000 messages of 10KB each, using 50 concurrent goroutines, waiting 100 nanoseconds between each message. Only print to stdout if there is a nack or when you finish.
+Produce 1,000,000 messages of 10KB each, using 50 concurrent goroutines, waiting 100 nanoseconds between each message. Only print to stdout if there is a nack or when you finish:
 
     ./rabbit-mq-stress-tester --server localhost --producer 1000000 --concurrency 50 \
                               --bytes 10000 --wait 100 --quiet
