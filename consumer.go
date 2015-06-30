@@ -12,8 +12,8 @@ type ConsumerConfig struct {
 	Quiet      bool
 }
 
-func Consume(config ConsumerConfig, doneChan chan bool) {
-	log.Println("Consuming...")
+func Consume(config ConsumerConfig, queueName string, doneChan chan bool) {
+	log.Println("Consuming... "+queueName)
 	connection, err := amqp.Dial(config.Uri)
 	if err != nil {
 		println(err.Error())
@@ -28,7 +28,8 @@ func Consume(config ConsumerConfig, doneChan chan bool) {
 	}
 	defer channel.Close()
 
-	q := MakeQueue(channel)
+	log.Println("Consume MakeQueue: ", queueName)
+	q := MakeQueue(channel, queueName)
 
 	msgs, err3 := channel.Consume(q.Name, "", true, false, false, false, nil)
 	if err3 != nil {

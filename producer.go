@@ -14,7 +14,7 @@ type ProducerConfig struct {
 	WaitForAck bool
 }
 
-func Produce(config ProducerConfig, tasks chan int) {
+func Produce(config ProducerConfig, queueName string, tasks chan int) {
 	connection, err := amqp.Dial(config.Uri)
 	if err != nil {
 		println(err.Error())
@@ -33,7 +33,8 @@ func Produce(config ProducerConfig, tasks chan int) {
 
 	ack, nack := channel.NotifyConfirm(make(chan uint64, 1), make(chan uint64, 1))
 
-	q := MakeQueue(channel)
+	log.Println("Produce MakeQueue: ", queueName)
+	q := MakeQueue(channel, queueName)
 
 	for {
 
@@ -51,14 +52,15 @@ func Produce(config ProducerConfig, tasks chan int) {
 		message := &MqMessage{start, sequenceNumber, makeString(config.Bytes)}
 		messageJson, _ := json.Marshal(message)
 
-		channel.Publish("", q.Name, true, false, amqp.Publishing{
-			Headers:         amqp.Table{},
-			ContentType:     "text/plain",
-			ContentEncoding: "UTF-8",
-			Body:            messageJson,
-			DeliveryMode:    amqp.Transient,
-			Priority:        0,
-		},
+		channel.Publish("", q.Name, true, false,
+			amqp.Publishing{
+				Headers:         amqp.Table{},
+				ContentType:     "text/plain",
+				ContentEncoding: "UTF-8",
+				Body:            messageJson,
+				DeliveryMode:    amqp.Transient,
+				Priority:        0,
+			},
 		)
 
 		confirmOne(ack, nack, config.Quiet, config.WaitForAck)

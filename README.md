@@ -21,6 +21,7 @@ Running
       --wait, -w "0"               number of nanoseconds to wait between publish events
       --bytes, -b "0"              number of extra bytes to add to the message payload (~50000 max)
       --concurrency, -n "50"       number of reader/writer goroutines
+      --queuesuffix, -x            suffix for queue name
       --wait-for-ack, -a           wait for an ack or nack after enqueueing a message
       --quiet, -q                  print only errors to stdout
       --help, -h                   show help
@@ -54,4 +55,6 @@ Final test setup:
     Term1: rabbit-mq-stress-tester --server localhost --consumer 0 --concurrency 3 --quiet
     Term2: rabbit-mq-stress-tester --server localhost --producer 1000000 --concurrency 1 --bytes 1 --wait 0 --quiet
     Term3: rabbit-mq-stress-tester --server localhost --producer 1000000 --concurrency 1 --bytes 1 --wait 0 --quiet
-    
+
+Multiple queues: I tried the same test using the pattern above but specifying two of the new --queuesuffixes (one for the first set of producers/consumers and another for the second). I got a small increase in total throughput to 31K msgs/s, but the CPUs were all saturated thoroughly.
+
