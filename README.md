@@ -19,9 +19,10 @@ Running
       --producer, -p "0"           number of messages to produce (-1 to produce forever)
       --consumer, -c "-1"          number of messages to consume (0 consumes forever)
       --wait, -w "0"               number of nanoseconds to wait between publish events
-      --bytes, -b "0"              number of extra bytes to add to the message payload (~50000 max)
+      --bytes, -b "0"              number of extra bytes to add to the message payload (~35K max)
       --concurrency, -n "50"       number of reader/writer goroutines
       --queuesuffix, -x            suffix for queue name
+      --durable, -d                use durable queues
       --wait-for-ack, -a           wait for an ack or nack after enqueueing a message
       --quiet, -q                  print only errors to stdout
       --help, -h                   show help
@@ -49,12 +50,14 @@ Interesting observations using localhost on Windows (may apply to Linux as well)
   - If wait == 0, the throughput was an order of magnitude higher (I saw around 13.3K msgs/s). CPUs (4 physical cores plus hyperthreading enabled) becomes ~90% saturated.
   - Increasing producer concurrency above 50 didn't improve things noticeably (it seemed to slightly decrease performance). In fact, anything above 1 had no effect. Possible bug in the producer code? The consumer definitely benefits from having higher concurrency) 
   - By running two producers (concurrency == 1) and one consumer (concurrency >= 3 due to overhead), I was able to sustain around 27.5K msgs/s, which saturated the CPU. That was about as fast as I could get this setup to go using default RabbitMQ settings.
+  - It didn't matter whether the queue was durable or not
+  - Changing runtime.GOMAXPROCS had no noticeable effect
 
 Final test setup:
 
-    Term1: rabbit-mq-stress-tester --server localhost --consumer 0 --concurrency 3 --quiet
-    Term2: rabbit-mq-stress-tester --server localhost --producer 1000000 --concurrency 1 --bytes 1 --wait 0 --quiet
-    Term3: rabbit-mq-stress-tester --server localhost --producer 1000000 --concurrency 1 --bytes 1 --wait 0 --quiet
+    Term1: rabbit-mq-stress-tester --server localhost --durable --consumer 0 --concurrency 3 --quiet
+    Term2: rabbit-mq-stress-tester --server localhost --durable --producer 1000000 --concurrency 1 --bytes 1 --wait 0 --quiet
+    Term3: rabbit-mq-stress-tester --server localhost --durable --producer 1000000 --concurrency 1 --bytes 1 --wait 0 --quiet
 
-Multiple queues: I tried the same test using the pattern above but specifying two of the new --queuesuffixes (one for the first set of producers/consumers and another for the second). I got a small increase in total throughput to 31K msgs/s, but the CPUs were all saturated thoroughly.
+Multiple queues: I tried the same test using the pattern above but specifying two of the new --queuesuffixes (one for the first set of producers/consumers and another for the second). I got a small increase in total throughput to around 31K msgs/s, but the CPUs were all saturated thoroughly.
 

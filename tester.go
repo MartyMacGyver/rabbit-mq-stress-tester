@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 	"fmt"
+	"runtime"
 )
 
 var totalTime int64 = 0
@@ -21,6 +22,7 @@ type MqMessage struct {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	app := cli.NewApp()
 	app.Usage = "RabbitMQ Stress Tester"
 	app.Version = ""
@@ -33,9 +35,10 @@ func main() {
 		cli.IntFlag{"producer, p", 0, "number of messages to produce (-1 to produce forever)", ""},
 		cli.IntFlag{"consumer, c", -1, "number of messages to consume (0 consumes forever)", ""},
 		cli.IntFlag{"wait, w", 0, "number of nanoseconds to wait between publish events", ""},
-		cli.IntFlag{"bytes, b", 0, "number of extra bytes to add to the message payload (~50000 max)", ""},
+		cli.IntFlag{"bytes, b", 0, "number of extra bytes to add to the message payload (~35K max)", ""},
 		cli.IntFlag{"concurrency, n", 50, "number of reader/writer goroutines", ""},
 		cli.StringFlag{"queuesuffix, x", "", "suffix for queue name", ""},
+		cli.BoolFlag{"durable, d", "use durable queues", ""},
 		cli.BoolFlag{"wait-for-ack, a", "wait for an ack or nack after enqueueing a message", ""},
 		cli.BoolFlag{"quiet, q", "print only errors to stdout", ""},
 		cli.BoolFlag{"help, h", "show help", ""}, // Retain --help/-h as switches
@@ -50,6 +53,8 @@ func runApp(c *cli.Context) {
 	uri := "amqp://guest:guest@" + c.String("server") + ":5672"
 
 	queueName := queueBaseName
+	queueDurability := c.Bool("durable")
+
 	if c.String("queuesuffix") != "" {
 		queueName = fmt.Sprintf("%s-%s", queueBaseName, c.String("queuesuffix"))
 	}
@@ -62,30 +67,30 @@ func runApp(c *cli.Context) {
 	} else if c.Int("consumer") > -1 {
 		fmt.Println("Running in consumer mode")
 		config := ConsumerConfig{uri, c.Bool("quiet")}
-		makeConsumers(config, queueName, c.Int("concurrency"), c.Int("consumer"))
+		makeConsumers(config, queueName, queueDurability, c.Int("concurrency"), c.Int("consumer"))
 	} else if c.Int("producer") != 0 {
 		fmt.Println("Running in producer mode")
 		config := ProducerConfig{uri, c.Bool("quiet"), c.Int("bytes"), c.Bool("wait-for-ack")}
-		makeProducers(config, queueName, c.Int("concurrency"), c.Int("producer"), c.Int("wait"))
+		makeProducers(config, queueName, queueDurability, c.Int("concurrency"), c.Int("producer"), c.Int("wait"))
 	} else {
 		cli.ShowAppHelp(c)
 		os.Exit(0)
 	}
 }
 
-func MakeQueue(c *amqp.Channel, queueName string) amqp.Queue {
-	q, err2 := c.QueueDeclare(queueName, true, false, false, false, nil)
+func MakeQueue(c *amqp.Channel, queueName string, queueDurability bool) amqp.Queue {
+	q, err2 := c.QueueDeclare(queueName, queueDurability, false, false, false, nil)
 	if err2 != nil {
 		panic(err2)
 	}
 	return q
 }
 
-func makeProducers(config ProducerConfig, queueName string, concurrency int, toProduce int, wait int) {
+func makeProducers(config ProducerConfig, queueName string, queueDurability bool, concurrency int, toProduce int, wait int) {
 	taskChan := make(chan int)
 
 	for i := 0; i < concurrency; i++ {
-		go Produce(config, queueName, taskChan)
+		go Produce(config, queueName, queueDurability, taskChan)
 	}
 
 	start := time.Now()
@@ -102,11 +107,11 @@ func makeProducers(config ProducerConfig, queueName string, concurrency int, toP
 	log.Printf("Finished: %s", time.Since(start))
 }
 
-func makeConsumers(config ConsumerConfig, queueName string, concurrency int, toConsume int) {
+func makeConsumers(config ConsumerConfig, queueName string, queueDurability bool, concurrency int, toConsume int) {
 	doneChan := make(chan bool)
 
 	for i := 0; i < concurrency; i++ {
-		go Consume(config, queueName, doneChan)
+		go Consume(config, queueName, queueDurability, doneChan)
 	}
 
 	start := time.Now()
